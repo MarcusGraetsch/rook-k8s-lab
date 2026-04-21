@@ -1,0 +1,37 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8sallowedregistry
+  annotations:
+    description: "Restricts container image registries"
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sAllowedRegistry
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            registries:
+              type: array
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package kubernetes.admission
+
+        violation[msg] {
+          container := input.request.object.spec.template.spec.containers[_]
+          not allowed_registry(container.image, input.parameters.registries)
+          msg := sprintf("Image '%v' not from allowed registry. Allowed: %v", [container.image, input.parameters.registries])
+        }
+
+        allowed_registry(image, registries) {
+          registries[_] == image
+        }
+
+        allowed_registry(image, registries) {
+          startswith(image, registries[_])
+        }

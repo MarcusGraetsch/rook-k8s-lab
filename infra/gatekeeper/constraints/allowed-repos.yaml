@@ -1,0 +1,21 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sAllowedRepos
+metadata:
+  name: allowed-docker-repos
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    namespaces:
+      - "wasserbilanz"
+      - "abwasser"
+      - "agripower"
+      - "stadtwerke-hh"
+  parameters:
+    repos:
+      - "docker.io/"
+      - "quay.io/"
+      - "kindest.io/"
+      - "registry.k8s.io/"
+      - "nginx"

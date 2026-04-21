@@ -1,0 +1,21 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sAllowedRegistry
+metadata:
+  name: allowed-registries
+spec:
+  match:
+    kinds:
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet"]
+    namespaces:
+      - "wasserbilanz"
+      - "abwasser"
+      - "agripower"
+      - "stadtwerke-hh"
+  parameters:
+    registries:
+      - "docker.io/"
+      - "quay.io/"
+      - "nginx"
+      - "kindest.io/"
+      - "registry.k8s.io/"
