@@ -123,4 +123,41 @@ Vorteile für unseren Use Case:
 
 ---
 
+## Compliance Referenzen
+
+### Audit & Nachvollziehbarkeit
+
+Flux ist die Grundlage für **Audit-Trails** in der IDP:
+- **Jede Änderung** am Cluster ist ein Git Commit
+- **Wer hat was geändert** → Git Blame
+- **Wann wurde es angewendet** → Flux Reconcile Logs
+- **Warum wurde es angewendet** → Git Commit Message
+
+**NIS2 Art. 21** fordert:
+> "Maßnahmen zur Erkennung und Verhinderung unbefugter Zugriffe"
+
+Flux ermöglicht das durch:
+- Immutable Infrastructure: Keine manuellen Änderungen am Cluster
+- Pull-basierte Updates: Flux zieht Änderungen, kein direkter API-Zugriff nötig
+- Reconciliation: Abweichungen werden automatisch erkannt und korrigiert
+
+### BSI IT-Grundschutz OPS.1.1.3
+
+**Protokollierung und Alarmierung:**
+- Flux logged alle Reconcile-Events
+- Bei Drift (Cluster ≠ Git) → Flux berichtet Status
+- Telegram Notifications bei Fehlern (docs/07-flux-telegram-notifications.md)
+
+### Change Management (ISO 27001 A.12.1.2)
+
+> Änderungen an Informationsverarbeitungsanlagen und -systemen müssen kontrolliert ablaufen.
+
+**Flux als Change Management Tool:**
+1. Developer erstellt Pull Request (Change Request)
+2. Reviewer prüft und approvet (Change Approval)
+3. Merge → Flux applyt automatisch (Change Execution)
+4. Audit Log zeigt durchgeführte Änderungen (Change Record)
+
+---
+
 *Quelle: fluxcd.io*

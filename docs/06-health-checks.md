@@ -166,5 +166,40 @@ Flux Kustomization bekommt einen healthCheck der auf das Deployment zeigt.
 
 ---
 
+## Compliance Referenzen
+
+### NIS2 Art. 21 — Verfügbarkeit
+
+NIS2 fordert Maßnahmen zur **Sicherstellung der Verfügbarkeit**:
+- Resilience gegen Ausfälle (Readiness Probes)
+- Automatische Wiederherstellung (Liveness Probes)
+- Monitoring der Service-Verfügbarkeit
+
+**Health Checks als NIS2 Maßnahme:**
+| NIS2 Anforderung | Umsetzung |
+|------------------|-----------|
+| Verfügbarkeit | Readiness Probe → Traffic nur an gesunde Pods |
+| Resilience | Liveness Probe → Restart bei Hänger |
+| Monitoring | Flux health checks → Cluster-Zustand sichtbar |
+
+### BSI IT-Grundschutz CON.1
+
+**M6: Verfügbarkeit von Containern**
+- Ressourcen-Limits gegen Memory/CPU Exhaustion
+- Readiness/Liveness Probes für Hochverfügbarkeit
+- Health Endpoints für Load Balancer
+
+### ISO 27001 A.12.3
+
+**Schutz vor Ausfall von Informationssystemen:**
+- A.12.3.1: Informations-Backup
+- A.12.3.2: Redundanz von Systemen (Kubernetes HPA)
+
+Health Checks sind Voraussetzung für:
+- Horizontal Pod Autoscaler (HPA) funktioniert nur mit Readiness
+- Load Balancer leiten Traffic nur an gesunde Pods
+
+---
+
 *Quelle: kubernetes.io/docs, fluxcd.io/docs*
 *Erstellt: 2026-04-21*

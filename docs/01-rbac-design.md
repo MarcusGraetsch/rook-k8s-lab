@@ -217,6 +217,50 @@ Token enthält Gruppen → kubectl nutzt OIDC Auth
 5. [ ] Keycloak OIDC konfigurieren (GitHub OAuth als IdP)
 6. [ ] Test: Developer kann nur eigene NS sehen
 
+## Compliance Referenzen
+
+### NIS2 (Network and Information Security Directive 2)
+
+NIS2 Art. 21 fordert **Access Control Policies**:
+- Least Privilege: Jeder Nutzer bekommt nur die Rechte die er braucht
+- Separation of Duties: Platform Admins ≠ Developer
+- Regelmäßige Access Reviews: Wer hat noch Zugriff?
+
+**Umsetzung:**
+- PlatformAdmin für Platform Team (minimal: 2 Personen)
+- AppDeveloper für Developer Teams
+- Customer für externe Kunden (minimaler Scope)
+- Kunden haben KEINEN Zugriff auf Cluster-Admin
+
+### BSI IT-Grundschutz
+
+**CON.2 (Identity and Access Management)**:
+- M2: Authentisierung und Autorisierung
+- M3: Verwaltung von Identitäten und Berechtigungen
+- M4: Protokollierung und Monitoring
+
+**Umsetzung:**
+| BSI Anforderung | Unsere Umsetzung |
+|-----------------|------------------|
+| Benutzer-authentifizierung | Keycloak OIDC |
+| Rollentrennung | Separate Roles (admin/developer/customer) |
+| Zugriffsprotokollierung | Fluxaudit, kube-apiserver Logs |
+| Regelmäßiges Access Review | midPoint Compliance Reports |
+
+### DSGVO (Art. 32)
+
+**Security of Processing**:
+- Vertraulichkeit: Kunden-Deployments sind isoliert (Namespaces)
+- Kein Zugriff auf Secrets ohne explizite Berechtigung
+- Pseudonymisierung: Keine personenbezogenen Daten in Logs
+
+### ISO/IEC 27001
+
+**A.9 Access Control**:
+- A.9.1 Business requirements of access control
+- A.9.2 User access management
+- A.9.4 Privileged access rights
+
 ---
 
 *Erstellt: 2026-04-21*

@@ -229,9 +229,72 @@ kubectl get pods -n flux-system | grep notification
 
 ---
 
+## Compliance Referenzen
+
+### NIS2 (Art. 21)
+
+NIS2 fordert **Security Measures** including:
+- Vulnerability Management (keine bekannten CVEs in Images)
+- Container Hardening (keine privileged Container)
+- Network Security (keine HostPorts, kein HostNetwork)
+
+**OPA Policies die NIS2 addressieren:**
+| NIS2 Anforderung | OPA Policy |
+|------------------|-----------|
+| Zugangskontrolle | require-authentication |
+| Netzwerksicherheit | no-host-network, no-host-port |
+| Container-Sicherheit | no-privileged-container, read-only-rootfs |
+| Image-Sicherheit | allowed-registry (nur vertrauenswürdige Images) |
+
+### BSI IT-Grundschutz CON.1
+
+**Container Härtung (CON.1)**:
+- M1: Minimal base image (keine unnötigen Tools)
+- M2: Keine privilegierten Container
+- M3: Resource Limits gegen DoS
+- M4: NetworkPolicies gegen Lateral Movement
+- M5: Secrets nicht in Env Vars (sondern Volume Mounts)
+
+**OPA Policies für CON.1:**
+```rego
+# CON.1 M2: Keine privileged Container
+deny[msg] {
+  input.request.kind.kind == "Deployment"
+  container := input.request.object.spec.template.spec.containers[_]
+  container.securityContext.privileged == true
+  msg := "Privileged containers are not allowed (BSI CON.1 M2)"
+}
+
+# CON.1 M3: Resource Limits
+deny[msg] {
+  input.request.kind.kind == "Deployment"
+  container := input.request.object.spec.template.spec.containers[_]
+  not container.resources.limits
+  msg := "Container must have resource limits (BSI CON.1 M3)"
+}
+```
+
+### DSGVO (Art. 32)
+
+**Technische Maßnahmen:**
+- Verschlüsselung: OPA garantiert keine Secrets in Plain-Text
+- Zugangskontrolle: Kein exec in Container ohne RBAC
+- Integrität: Keine Manipulation von Deployments ohne Audit Trail
+
+### CIS Kubernetes Benchmark
+
+OPA Gatekeeper implementiert Teile von:
+- CIS 5.2.1: Ensure default namespace is not used
+- CIS 5.2.5: Ensure that the Seccomp Profile is set to RuntimeDefault
+- CIS 5.2.6: Ensure that the SecurityContext limits are set
+
+---
+
 *Quellen:*
 * https://open-policy-agent.github.io/gatekeeper/
 * https://github.com/open-policy-agent/gatekeeper-library
 * https://www.openpolicyagent.org/docs/kubernetes/debugging
+* BSI IT-Grundschutz Kompendium: CON.1 Container
+* NIS2 Directive (EU) 2022/2555
 
 *Erstellt: 2026-04-21*

@@ -112,4 +112,55 @@ curl -s localhost:8080/metrics | head
 
 ---
 
+## Compliance Referenzen
+
+### NIS2 Art. 21 — Incident Detection & Response
+
+NIS2 fordert:
+> "Prozesse zur Erkennung, Bewertung und Meldung von Sicherheitsvorfällen"
+
+Prometheus + AlertManager ermöglichen:
+- **Erkennung**: Metriken zeigen Anomalien (hohe CPU, Crash-Loops)
+- **Bewertung**: Alert Severity (critical/warning/info)
+- **Meldung**: AlertManager routet zu Telegram, Email, PagerDuty
+
+### BSI IT-Grundschutz CON.1 + OPS.1.1.3
+
+**CON.1 M8: Monitoring und Protokollierung**
+- kube-state-metrics: Cluster-Zustand wird erfasst
+- node-exporter: CPU, Memory, Network pro Node
+- Prometheus: Zentrale Metriken-Sammlung
+
+**OPS.1.1.3 M4: Alarmierung**
+> "Bei Überschreitung von Schwellwerten muss automatisch alarmiert werden"
+
+Prometheus Alertmanager setzt das um:
+```yaml
+# Beispiel: Critical Alert bei Pod Crash
+- alert: KubePodCrashLooping
+  expr: rate(kube_pod_container_status_restarts[5m]) > 0.3
+  labels:
+    severity: critical
+  annotations:
+    summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is restarting"
+```
+
+### DSGVO Art. 33 — Breach Notification
+
+> "Bei einer Verletzung des Schutzes personenbezogener Daten... Benachrichtigung innerhalb von 72 Stunden"
+
+Prometheus + AlertManager stellen sicher:
+- Sicherheitsvorfälle werden sofort erkannt
+- Alert geht an zuständiges Team
+- Incident Response kann innerhalb von 72h starten
+
+### ISO 27001 A.16 — Information Security Incident Management
+
+- A.16.1.1: Management of incidents and weaknesses
+- A.16.1.2: Reporting information security events
+
+Prometheus Alerting = technische Umsetzung für A.16.1.1/2
+
+---
+
 *Erstellt: 2026-04-21*

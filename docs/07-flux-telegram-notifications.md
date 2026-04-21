@@ -146,5 +146,39 @@ flux get alert-providers
 
 ---
 
+## Compliance Referenzen
+
+### NIS2 Art. 23 — Vorfallmeldung
+
+NIS2 Art. 23 fordert:
+> "Meldepflichtige Sicherheitsvorfälle sind den zuständigen Behörden unverzüglich, spätestens aber 24 Stunden nach Kenntnisnahme zu melden"
+
+Telegram Alerts ermöglichen:
+- **Sofortige Benachrichtigung** des Platform Teams
+- **Dokumentation** der Vorfallzeitpunkte (Message History)
+- **Schnelle Reaktion** um 24h-Frist einzuhalten
+
+### BSI IT-Grundschutz OPS.1.1.3
+
+**M3: Eskalationskonzept**
+> "Bei sicherheitsrelevanten Ereignissen muss ein definiertes Eskalationsverfahren greifen"
+
+Flux Telegram Notifications = Eskalationsstufe 1:
+1. Flux erkennt Problem (K8s Event)
+2. Telegram Alert an Platform Team
+3. Team beginnt Incident Response
+
+### ISO 27001 A.16.1.2
+
+**Reporting Information Security Events:**
+> "Informationssicherheitsvorfälle sind so schnell wie möglich zu melden"
+
+Telegram als Kanal erfüllt:
+- Near-real-time Benachrichtigung
+- Gruppensupport für Incident Teams
+- Message-Timestamps als Audit Trail
+
+---
+
 *Quelle: fluxcd.io/docs/flux/notifications*
 *Erstellt: 2026-04-21*

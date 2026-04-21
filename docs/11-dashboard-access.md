@@ -108,4 +108,46 @@ Im Rook Dashboard einbauen:
 
 ---
 
+## Compliance Referenzen
+
+### Zentrales Dashboard für Auditoren
+
+Ein zentraler Zugriffspunkt auf alle Tools erleichtert:
+
+| Compliance Anforderung | Umsetzung |
+|------------------------|-----------|
+| **BSI Grundschutz** | Auditor kann alle Reports an einem Ort finden |
+| **NIS2 Art. 21** | Zugriff auf Security Monitoring Tools |
+| **ISO 27001 A.12.4** | Log-Überwachung zentral möglich |
+
+### SSO mit Keycloak
+
+Alle Tools sollten über Keycloak SSO erreichbar sein:
+- **Ein Login** für alle Tools (Single Sign-On)
+- **Zentrale Zugriffskontrolle** (Keycloak als IdP)
+- **Audit Trail** (wer hat wann auf was zugegriffen)
+
+### SSO Integration (Keycloak → Alle Tools)
+
+```
+User → Keycloak SSO → ArgoCD
+                      → Grafana
+                      → Prometheus
+                      → Polaris
+                      → midPoint
+```
+
+Vorteil: Kein lokales Passwort für jedes Tool → weniger Angriffsoberfläche.
+
+### Security Considerations
+
+⚠️ **Wichtige Hinweise:**
+
+1. **Keycloak Admin Console** NUR für Platform Team
+2. **Grafana Admin** NUR für Platform Team
+3. **midPoint** NUR für Security/Compliance Team
+4. **Developer** bekommen nur Read-Only Dashboards
+
+---
+
 *Erstellt: 2026-04-21*

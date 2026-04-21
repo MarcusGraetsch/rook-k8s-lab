@@ -105,4 +105,38 @@ kubectl logs -n argocd deployment/argocd-dex-server
 
 ---
 
+## Compliance Referenzen
+
+### NIS2 — Developer Self-Service
+
+NIS2 Art. 21 fordert **Incident Response** und **Zugriffskontrolle**:
+- Developer können Deployments selbst prüfen (Self-Service)
+- Keine Direkt-Zugriffe auf Kubernetes API nötig
+- Änderungen werden über ArgoCD getrackt
+
+### RBAC für ArgoCD
+
+ArgoCD kann RBAC umsetzen für Developer:
+
+| Policy | Beschreibung | Für |
+|--------|--------------|-----|
+| `role:readonly` | Nur lesen | Auditor |
+| `role:guest` | Deployments sehen | Externe Contractor |
+| `role:admin` | Alles | Platform Team |
+
+### BSI IT-Grundschutz CON.2
+
+**M4: Berechtigungsnachweise**
+- ArgoCD hat eingebaute Audit Logs (wer hat was deployed)
+- Export als CSV für Compliance Reports
+
+### ISO 27001 A.9.4
+
+**Privileged Access Management:**
+- ArgoCD admin sollte nur für Platform Team sein
+- Developer nutzen `readonly` oder `guest` Rolle
+- SSO über Keycloak ermöglicht zentrale Kontrolle
+
+---
+
 *Erstellt: 2026-04-21*

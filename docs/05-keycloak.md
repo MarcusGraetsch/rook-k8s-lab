@@ -167,4 +167,49 @@ kubectl exec -n keycloak keycloak-0 -- /opt/keycloak/bin/kcadm.sh reset-password
 
 ---
 
+## Compliance Referenzen
+
+### DSGVO Art. 32 — Authentifizierung
+
+DSGVO fordert angemessene Authentifizierung:
+- **Art. 32 (1)**: "Pseudonymisierung und Verschlüsselung"
+- **Art. 32 (2)**: "Fähigkeit, auf Dauer die Vertraulichkeit... sicherzustellen"
+
+Keycloak erfüllt dies durch:
+- Starke Passwort-Policies (Length, Complexity, History)
+- MFA/2FA Support (TOTP, WebAuthn)
+- SSO verhindert Passwort-Wiederholung
+
+### NIS2 Art. 21 — Access Control
+
+> "Maßnahmen für den Zugang zu Netzen und Informationssystemen"
+
+Keycloak implementiert:
+- Zentrales Identity Management (Single Source of Truth)
+- Rollen-basierten Zugriff (RBAC)
+- OAuth2/OIDC Standard (Industry Best Practice)
+
+### BSI IT-Grundschutz CON.2
+
+**M2: Starke Authentifizierung**
+- Keycloak als zentraler IdP
+- OIDC für Kubernetes API (statt static Tokens)
+- Groups für Teams → automatisch richtige RBAC
+
+**M3: Identity Federation**
+- Keycloak kann External IdPs anbinden (GitHub, Google, LDAP)
+- Zentrales User Management für alle Tools
+
+### ISO 27001 A.9
+
+**Access Control Standards:**
+- A.9.1: Business requirements of access control
+- A.9.2: User registration and de-registration
+- A.9.3: User access rights management
+- A.9.4: Use of privileged access rights
+
+Keycloak bildet das technische Fundament für alle diese Anforderungen.
+
+---
+
 *Erstellt: 2026-04-21*
