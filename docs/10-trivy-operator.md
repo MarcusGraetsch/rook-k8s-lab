@@ -92,3 +92,40 @@ Der Trivy Operator installiert einen VulnerabilityReport für jede Workload. Wen
 ---
 
 *Erstellt: 2026-04-21*
+---
+
+## Compliance Referenzen
+
+### NIS2 Art. 21 — Vulnerability Management
+
+NIS2 fordert:
+> "Maßnahmen zur Beherrschung von Risiken... einschließlich... Schwachstellenmanagement"
+
+| NIS2 Anforderung | Umsetzung |
+|-----------------|-----------|
+| Kontinuierliches Scanning | Trivy Operator scannt alle Images |
+| Risikobewertung | Severity Levels (CRITICAL/HIGH/MEDIUM) |
+| Behebung | Auto-PR oder Human-in-the-Loop |
+
+### BSI CON.1 M4 — Schwachstellenmanagement
+
+> "Prozesse zur Erkennung und Behebung von Schwachstellen in Container-Images"
+
+Trivy findet:
+- CVEs in Base Images
+- Outdated Packages
+- Security Misconfigurations
+
+### ISO 27001 A.12.6 — Technical Vulnerabilities
+
+- A.12.6.1: Schwachstellen werden zeitnah identifiziert
+- A.12.6.2: Relevanz wird bewertet
+- A.12.6.3: Maßnahmen zur Behebung
+
+### EU Cyber Resilience Act (CRA)
+
+Ab 2027: Pflicht-Scans für Produkte mit digitalen Elementen.
+
+---
+
+*Erstellt: 2026-04-21*

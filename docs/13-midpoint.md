@@ -285,3 +285,56 @@ Für Production: PostgreSQL konfigurieren.
 ---
 
 *Erstellt: 2026-04-21*
+
+---
+
+## Compliance Referenzen
+
+### NIS2 Art. 20 + 21 — Identity Governance
+
+NIS2 fordert:
+> "Maßnahmen für das Management... von Identitäten und Zugriffsrechten"
+
+| NIS2 Anforderung | midPoint Feature |
+|-----------------|------------------|
+| Benutzer-Lebenszyklus | Joiner/Mover/Leaver Workflows |
+| Zugriffskontrolle | Role-Based Access Control |
+| Access Reviews | Periodic Certification Campaigns |
+| Audit Trail | Compliance Reports für Auditoren |
+
+### BSI CON.2 — Identity und Access Management
+
+**M3: Verwaltung von Identitäten und Berechtigungen**
+
+midPoint implementiert:
+- Zentrales User Management
+- Role Mining (automatische Rollen-Erkennung)
+- Compliance Reports
+- Access Certification
+
+**M4: Berechtigungsnachweise**
+
+> "Regelmäßige Überprüfung der Berechtigungen"
+
+midPoint Campaigns prüfen:
+- Wer hat Zugriff auf welche Systeme?
+- Ist der Zugriff noch justified?
+- Sind die Genehmigungen dokumentiert?
+
+### ISO 27001 A.9.2 + A.9.3
+
+- A.9.2.1: User registration and de-registration
+- A.9.2.2: User access provisioning
+- A.9.3.1: Use of privileged access rights
+- A.9.3.3: Management of sensitive information
+
+### DSGVO Art. 30 — Records of Processing Activities
+
+midPoint kann als Basis für Art. 30 Records dienen:
+- Wer hat Zugriff auf welches System?
+- Welche Rollen existieren?
+- Wann wurde der letzte Access Review durchgeführt?
+
+---
+
+*Erstellt: 2026-04-21*

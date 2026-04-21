@@ -336,3 +336,44 @@ git push
 
 *Dokument erstellt: 2026-04-21*
 *Reviewzyklus: Quartalsweise durch Platform Team*
+
+---
+
+## Compliance Referenzen (Detailliert)
+
+### NIS2 (EU Directive 2022/2555)
+
+NIS2 Art. 21 fordert Security Measures für Betreiber wesentlicher Dienste:
+
+| NIS2 Anforderung | Leitplanke | Tool |
+|------------------|-----------|------|
+| Zugangskontrolle | Namespace Isolation | RBAC + OPA |
+| Supply Chain Security | Registry Whitelist | OPA |
+| Container Security | No privileged | OPA |
+| Netzwerksicherheit | Network Policies | CNI |
+| Vulnerability Management | CVE Scanning | Trivy |
+
+### BSI IT-Grundschutz CON.1
+
+| BSI Maßnahme | Unsere Leitplanke |
+|--------------|------------------|
+| M1 (Minimal Images) | Registry Whitelist |
+| M2 (Privileged) | No privileged Container |
+| M3 (Resource Limits) | Resource Limits Required |
+| M4 (Patches) | CVE Scanning + Workflow |
+| M5 (Secrets) | Secrets via SOPS |
+| M6 (Verfügbarkeit) | Health Checks |
+
+### ISO/IEC 27001
+
+- A.9.1.1: Access control policy
+- A.9.2.1: User registration
+- A.9.4.1: Information access restriction
+- A.12.6.1: Management of technical vulnerabilities
+
+### DSGVO Art. 32
+
+Technische Maßnahmen für personenbezogene Daten:
+- Zugangskontrolle (RBAC)
+- Vertraulichkeit (Secrets via SOPS)
+- Integrität (GitOps Immutable)
