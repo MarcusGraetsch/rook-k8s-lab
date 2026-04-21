@@ -1,0 +1,7 @@
+# SOPS Konfiguration für rook-k8s-lab
+# Alle Secrets in infra/secrets/ werden mit diesem Key verschlüsselt
+
+creation_rules:
+  - path_regex: infra/secrets/.*
+    encrypted_regex: "^(data|stringData)$"
+    age: age1zvvmhtmlsltgz6ml7kdlfu8ttkvew8yd4l6dcxyflzq306mvnensh742ut

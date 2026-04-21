@@ -1,4 +1,4 @@
-# Secrets Management
+# Secrets Management mit SOPS
 
 ## Das Problem
 
@@ -16,115 +16,144 @@ mein-passwort
 
 **Jeder der Zugriff auf etcd hat, kann Secrets lesen.**
 
-## Lösungen
-
-### Option 1: Kubernetes Sealed Secrets
-
-**Was es macht:** Secrets werden verschlüsselt in Git gespeichert. Nur der Sealed Secrets Controller kann sie entschlüsseln.
+## Unsere Lösung: SOPS + Age
 
 ```
-Developer erstellt Secret
+Developer erstellt Secret (Klartext)
         │
         ▼
-kubeseal verschlüsselt
+SOPS verschlüsselt mit Age Key
         │
         ▼
-SealedSecret (verschlüsselt) → in Git committed
+Verschlüsseltes Secret → in Git committed
         │
         ▼
-Sealed Secrets Controller im Cluster entschlüsselt
+Flux erkennt Änderung
+        │
+        ▼
+Decrypt im Cluster via SOPS
         │
         ▼
 Kubernetes Secret (entschlüsselt) → im Cluster
 ```
 
-### Option 2: HashiCorp Vault
+## Tools
 
-**Was es macht:** Zentrales Secrets Management. Applikationen holen Secrets zur Laufzeit.
+| Tool | Was es macht |
+|------|--------------|
+| **Age** | Moderne, einfache Verschlüsselung |
+| **SOPS** | Secrets Operations — verschlüsselt YAML/JSON/ENV |
 
-```
-App startet
-        │
-        ▼
-Vault Agent Injector erkennt Annotation
-        │
-        ▼
-Secret wird als Volume Mount bereitgestellt
-        │
-        ▼
-App liest Secret aus Datei
-```
-
-### Option 3: External Secrets Operator (ESO)
-
-**Was es macht:** Synchronisiert Secrets von AWS Secrets Manager / GCP Secret Manager / Azure Key Vault nach Kubernetes.
-
-```
-External Secrets Operator
-        │
-        ├──► AWS Secrets Manager
-        ├──► GCP Secret Manager  
-        └──► Azure Key Vault
-        │
-        ▼
-Kubernetes Secret (im Cluster)
-```
-
-## Unsere Empfehlung für POC
-
-**Sealed Secrets** — weil:
-- Einfach zu installieren
-- Kein externer Service nötig
-- GitOps-kompatibel
-- Für die meisten Use Cases ausreichend
-
-## Sealed Secrets Installation
+## Installation
 
 ```bash
-# Controller installieren
-kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/latest/download/controller.yaml
+# Age installieren
+curl -sL https://github.com/FiloSottile/age/releases/download/v1.3.1/age-v1.3.1-linux-amd64.tar.gz | tar -xz -C /tmp
+sudo mv /tmp/age /tmp/age-keygen /usr/local/bin/
 
-# kubeseal CLI installieren (für Developer)
-curl -sL https://github.com/bitnami-labs/sealed-secrets/releases/latest/download/kubeseal-linux-amd64.tar.gz | tar xz
-sudo mv kubeseal /usr/local/bin/
+# SOPS installieren
+curl -sL -o /tmp/sops https://github.com/getsops/sops/releases/download/v3.12.2/sops-v3.12.2.linux.amd64
+sudo mv /tmp/sops /usr/local/bin/
 ```
 
-## Secrets erstellen
-
-###Workflow: Developer erstellt Secret
+## Schlüssel generieren
 
 ```bash
-# 1. Normales Kubernetes Secret erstellen
-kubectl create secret generic db-credentials \
-  --from-literal=username=appuser \
-  --from-literal=password=geheim \
-  -n wasserbilanz \
-  -o yaml --dry-run=client > secret.yaml
+# Age Key Pair generieren
+age-keygen -o infra/secrets/age-key.txt
 
-# 2. Mit kubeseal verschlüsseln
-kubeseal --format=yaml < secret.yaml > sealed-secret.yaml
-
-# 3. sealed-secret.yaml in Git committen
-git add sealed-secret.yaml
-git commit -m "feat: add db-credentials for wasserbilanz"
-git push
+# Public Key merken (für .sops.yaml)
+cat infra/secrets/age-key.txt
+# age1zvvmhtmlsltgz6ml7kdlfu8ttkvew8yd4l6dcxyflzq306mvnensh742ut
 ```
 
-### Das verschlüsselte Secret
+**WICHTIG:** Den Private Key (`age1...`) sicher speichern — NIEMALS in Git committen!
+
+## SOPS Konfiguration (.sops.yaml)
 
 ```yaml
-apiVersion: bitnami.com/v1alpha1
-kind: SealedSecret
+# Im Repo Root: .sops.yaml
+creation_rules:
+  - path_regex: infra/secrets/.*
+    encrypted_regex: "^(data|stringData)$"
+    age: age1zvvmhtmlsltgz6ml7kdlfu8ttkvew8yd4l6dcxyflzq306mvnensh742ut
+```
+
+## Secret erstellen
+
+### Schritt 1: Unverschlüsseltes Secret erstellen
+
+```bash
+mkdir -p infra/secrets
+cat > infra/secrets/db-credentials.yaml << 'EOF'
+apiVersion: v1
+kind: Secret
 metadata:
   name: db-credentials
   namespace: wasserbilanz
-spec:
-  encryptedData:
-    username: AgA2...  # verschlüsselt
-    password: AgB3...  # verschlüsselt
+type: Opaque
+stringData:
+  username: appuser
+  password: supergeheim123
+EOF
 ```
 
-**Das kann bedenkenlos in Git! Niemand kann es lesen ohne den Sealed Secrets Controller.**
+### Schritt 2: Verschlüsseln
+
+```bash
+# Mit SOPS (nutzt .sops.yaml automatisch)
+sops --encrypt infra/secrets/db-credentials.yaml > infra/secrets/db-credentials.enc.yaml
+
+# Oder explizit mit Age Key
+export SOPS_AGE_KEY=$(cat infra/secrets/age-key.txt | grep "AGE-SECRET-KEY")
+sops --encrypt --age age1zvvmhtmlsltgz6ml7kdlfu8ttkvew8yd4l6dcxyflzq306mvnensh742ut \
+  infra/secrets/db-credentials.yaml > infra/secrets/db-credentials.enc.yaml
+```
+
+### Schritt 3: In Git committen
+
+```bash
+# Unverschlüsselte Version löschen (nie committen!)
+rm infra/secrets/db-credentials.yaml
+
+# Nur verschlüsselte Version committen
+git add infra/secrets/db-credentials.enc.yaml
+git commit -m "feat: add encrypted db-credentials for wasserbilanz"
+git push
+```
+
+## Verschlüsseltes Secret sieht so aus
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+    name: db-credentials
+    namespace: wasserbilanz
+type: Opaque
+stringData:
+    username: ENC[AES256_GCM,data:XnnCsqqO7A==,iv:...,type:str]
+    password: ENC[AES256_GCM,data:pwNyxKufYY8...,iv:...,type:str]
+sops:
+    age:
+        - recipient: age1zvvmhtmlsltgz6ml7kdlfu8ttkvew8yd4l6dcxyflzq306mvnensh742ut
+          enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            ...
+            -----END AGE ENCRYPTED FILE-----
+    lastmodified: "2026-04-21T14:47:03Z"
+    encrypted_regex: "^(data|stringData)$"
+    version: 3.12.2
+```
+
+**Das kann bedenkenlos in Git! Niemand kann es lesen ohne den Age Private Key.**
+
+## Secret decrypten (zum Lesen)
+
+```bash
+export SOPS_AGE_KEY=$(cat infra/secrets/age-key.txt | grep "AGE-SECRET-KEY")
+sops --decrypt infra/secrets/db-credentials.enc.yaml
+```
 
 ## Application: Secret nutzen
 
@@ -181,70 +210,44 @@ spec:
 
 **Empfehlung:** Volume Mounts sind sicherer (Env Vars können in Logs landen).
 
-## Rotations-Strategie
+## Flux + SOPS Integration
 
-### Secret Rotation (Neues Secret, alte Version ungültig)
+### Flux SOPS Provider (später)
 
-```bash
-# Neues Secret erstellen
-kubectl create secret generic db-credentials \
-  --from-literal=username=appuser \
-  --from-literal=password=neues-geheim \
-  -n wasserbilanz \
-  -o yaml --dry-run=client | kubeseal --format=yaml > sealed-secret.yaml
-
-# Git push → Sealed Secrets Controller updatet automatisch
-git add sealed-secret.yaml
-git commit -m "chore: rotate db-credentials"
-git push
-```
-
-### Automatische Rotation mit Vault (Production)
-
-Vault kann Secrets automatisch rotieren:
+Flux kann SOPS-verschlüsselte Secrets direkt in den Cluster bringen:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
+apiVersion: v1
+kind: Secret
 metadata:
   name: db-credentials
   namespace: wasserbilanz
-spec:
-  refreshInterval: 1h  # Automatisch alle Stunde updaten
-  secretStoreRef:
-    name: vault-backend
-    kind: ClusterSecretStore
-  target:
-    name: db-credentials
-  data:
-  - secretKey: username
-    remoteRef:
-      key: database/wasserbilanz
-      property: username
-  - secretKey: password
-    remoteRef:
-      key: database/wasserbilanz
-      property: password
+  annotations:
+    fluxcd.io/ignore: "false"
 ```
 
-## Troubleshooting
-
-### SealedSecret wird nicht entschlüsselt
+### Aktuell: Decrypt im CI/CD
 
 ```bash
-# Controller Logs prüfen
-kubectl logs -n kube-system deployment/sealed-secrets-controller
-
-# Status prüfen
-kubectl get SealedSecret -n wasserbilanz
-kubectl describe SealedSecret db-credentials -n wasserbilanz
+# In GitHub Actions:
+export SOPS_AGE_KEY=${{ secrets.SOPS_AGE_KEY }}
+sops --decrypt infra/secrets/db-credentials.enc.yaml | kubectl apply -f -
 ```
 
-### Falsches Zertifikat
+## Key Rotation
+
+### Neuen Key generieren
 
 ```bash
-# Certificate neu generieren (wenn Cluster neu erstellt wurde)
-kubeseal --regenerate-certificates --cert public-key.pem
+age-keygen -o infra/secrets/age-key-new.txt
+```
+
+### Alte Secrets neu verschlüsseln
+
+```bash
+export SOPS_AGE_KEY=$(cat infra/secrets/age-key-old.txt | grep "AGE-SECRET-KEY")
+sops --encrypt --age $(cat infra/secrets/age-key-new.txt | grep "^Public" | awk '{print $3}') \
+  infra/secrets/db-credentials.enc.yaml > infra/secrets/db-credentials-new.enc.yaml
 ```
 
 ## Security Best Practices
@@ -252,10 +255,19 @@ kubeseal --regenerate-certificates --cert public-key.pem
 | Praxis | Warum | Umsetzung |
 |--------|-------|-----------|
 | Keine Secrets in Env Vars | Können in Logs landen | Volume Mounts |
-| Keine Secrets in Git (unverschlüsselt) | Jeder kann lesen | Sealed Secrets |
-| Regelmäßige Rotation | Reduziert Impact bei Leak | Vault oder CronJob |
-| Least Privilege | Nur Zugriff auf benötigte Secrets | RBAC |
-| Audit Logs | Wissen wer auf was zugreift | Vault Audit Device |
+| Private Key NIEMALS in Git | Jeder kann entschlüsseln | .gitignore + sichere Verwahrung |
+| Regelmäßige Rotation | Reduziert Impact bei Leak | Age Key jährlich rotieren |
+| Separate Keys pro Umgebung | PROD ≠ STAGING | Ein Key pro Cluster |
+| Audit Logs | Wissen wer auf was zugreift | Git History + kubectl events |
+
+## Files die NIEMALS in Git dürfen
+
+```bash
+# .gitignore
+infra/secrets/age-key.txt          # Private Key
+infra/secrets/*.yaml              # Unverschlüsselte Secrets
+*.decrypted                       # Temp Files
+```
 
 ---
 
@@ -268,15 +280,15 @@ kubeseal --regenerate-certificates --cert public-key.pem
 
 | BSI Anforderung | Umsetzung |
 |-----------------|-----------|
-| Verschlüsselung at Rest | Sealed Secrets (RSA encryption) |
-| Zugriffskontrolle | RBAC + Sealed Secrets Controller |
+| Verschlüsselung at Rest | SOPS + Age (AES-256-GCM) |
+| Zugriffskontrolle | Private Key nur auf sicheren Systemen |
 | Transport | TLS für alle API-Kommunikation |
 
 ### DSGVO Art. 32
 
 **Technische Maßnahmen:**
 - Verschlüsselung personenbezogener Daten
-- Pseudonymisierung (Secrets als UUIDs wo möglich)
+- Pseudonymisierung
 - Zugangskontrolle (RBAC)
 
 ### ISO 27001
@@ -286,13 +298,11 @@ kubeseal --regenerate-certificates --cert public-key.pem
 - A.9.4.2: Secure log-on procedures
 - A.9.4.3: Password management system
 
-Vault/Sealed Secrets implementiert diese Anforderungen.
-
 ### NIS2 Art. 21
 
 > "Maßnahmen für den Schutz... gegen Diebstahl... von Daten"
 
-Secrets Management verhindert Diebstahl von Credentials.
+SOPS + Age verhindert Diebstahl von Credentials.
 
 ---
 
