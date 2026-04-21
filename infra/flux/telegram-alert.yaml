@@ -1,0 +1,13 @@
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Alert
+metadata:
+  name: telegram
+  namespace: flux-system
+spec:
+  providerRef:
+    name: telegram
+  eventSources:
+    - kind: GitRepository
+      name: rook-lab
+    - kind: Kustomization
+      name: rook-lab
