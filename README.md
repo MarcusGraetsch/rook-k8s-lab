@@ -165,26 +165,32 @@ docs/
 
 ## Vulnerability Status (Scans vom 2026-04-21)
 
-| Image | Critical | High | Medium | Status | Remediation |
-|-------|----------|------|--------|--------|-------------|
-| etcd | 32 | 202 | 282 | ⚠️ Cluster-namespace | Kubernetes Version updaten |
-| keycloak | 17 | 187 | 563 | ⚠️ IdP | Version 26.6.1 nutzen |
-| nginx | 16 | 73 | 160 | ⚠️ App | Auf nginx:1.27-alpine updaten |
-| midPoint | 11 | 50 | 325 | ⚠️ IGA | Auf 4.10 updaten |
-| argocd | 10 | 56 | 218 | ⚠️ UI | Auf v2.14 updaten |
-| kindnet | 5 | 46 | 136 | ⚠️ Cluster-namespace | kind Version updaten |
-| kube-proxy | 7 | 53 | 140 | ⚠️ Cluster-namespace | K8s Version updaten |
-| kube-apiserver | 6 | 34 | 88 | ⚠️ Cluster-namespace | K8s Version updaten |
-| kube-scheduler | 6 | 33 | 87 | ⚠️ Cluster-namespace | K8s Version updaten |
-| kube-controller-manager | 6 | 40 | 90 | ⚠️ Cluster-namespace | K8s Version updaten |
-| coredns | 6 | 29 | 50 | ⚠️ Cluster-namespace | K8s Version updaten |
-| gatekeeper | 4 | 17 | 45 | ⚠️ Security | Version prüfen, ggf. updaten |
-| Polaris | 3 | 18 | 52 | ⚠️ Dashboard | Version prüfen |
-| ingress-nginx | 0 | 17 | 23 | ✅ OK | — |
-| node-exporter | 0 | 4 | 3 | ✅ OK | — |
-| prometheus | 0 | 4 | 3 | ✅ OK | — |
-| alertmanager | 0 | 2 | 2 | ✅ OK | — |
-| kube-bench | 1 | 17 | 23 | ✅ OK | — |
+| Image | Critical | High | Medium | Problem | Zuständig | Behebung |
+|-------|----------|------|--------|---------|-----------|----------|
+| etcd | 32 | 202 | 282 | Veraltetes K8s | Platform Team | Cluster mit neuer K8s Version neu erstellen |
+| keycloak | 17 | 187 | 563 | Veraltete Version | Platform Team | Helm upgrade auf 26.6.1 |
+| nginx (Demo) | 16 | 73 | 160 | Veraltetes Image | Developer | Dockerfile: nginx:1.27-alpine |
+| midPoint | 11 | 50 | 325 | Veraltete Version | Platform Team | Docker image zu 4.10 |
+| argocd | 10 | 56 | 218 | Veraltete Version | Platform Team | ArgoCD auf v2.14 updaten |
+| kindnet | 5 | 46 | 136 | Teil von kind | Platform Team | kind Version updaten |
+| kube-proxy | 7 | 53 | 140 | Teil von K8s | Platform Team | K8s Version updaten |
+| kube-apiserver | 6 | 34 | 88 | Teil von K8s | Platform Team | K8s Version updaten |
+| kube-scheduler | 6 | 33 | 87 | Teil von K8s | Platform Team | K8s Version updaten |
+| kube-controller-manager | 6 | 40 | 90 | Teil von K8s | Platform Team | K8s Version updaten |
+| coredns | 6 | 29 | 50 | Teil von K8s | Platform Team | K8s Version updaten |
+| gatekeeper | 4 | 17 | 45 | Version prüfen | Platform Team | Version prüfen, ggf. updaten |
+| Polaris | 3 | 18 | 52 | Version prüfen | Platform Team | Version prüfen |
+| ingress-nginx | 0 | 17 | 23 | Keine Criticals | — | — |
+| node-exporter | 0 | 4 | 3 | Keine Criticals | — | — |
+| prometheus | 0 | 4 | 3 | Keine Criticals | — | — |
+| alertmanager | 0 | 2 | 2 | Keine Criticals | — | — |
+| kube-bench | 1 | 17 | 23 | Gering | — | — |
+
+**Zuständig:**
+- **Platform Team**: Cluster-Images und Platform-Tools (ArgoCD, Keycloak, midPoint)
+- **Developer**: App-Images (nginx, eigene Apps)
+
+→ Workflow: `docs/12-vulnerability-workflow.md`
 
 → Workflow: `docs/12-vulnerability-workflow.md`
 → CLI: `trivy image --severity CRITICAL,HIGH <image>` für Details
