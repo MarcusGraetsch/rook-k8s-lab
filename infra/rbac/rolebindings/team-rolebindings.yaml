@@ -1,0 +1,55 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: wasserbilanz-developers
+  namespace: wasserbilanz
+subjects:
+  - kind: Group
+    name: github:Berlinwasser/dev-wasserbilanz
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: app-developer
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: abwasser-developers
+  namespace: abwasser
+subjects:
+  - kind: Group
+    name: github:Berlinwasser/dev-abwasser
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: app-developer
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agripower-customer
+  namespace: agripower
+subjects:
+  - kind: Group
+    name: github:AgrarPower/dev-team
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: customer-app-operator
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: stadtwerke-hh-customer
+  namespace: stadtwerke-hh
+subjects:
+  - kind: Group
+    name: github:StadtwerkeHamburg/dev-team
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: customer-app-operator
+  apiGroup: rbac.authorization.k8s.io
