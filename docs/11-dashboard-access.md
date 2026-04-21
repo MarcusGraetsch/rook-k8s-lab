@@ -1,81 +1,109 @@
 # Dashboard Access Guide
 
-## Übersicht aller Tools und ihre URLs
+## Übersicht aller Services
 
-| Tool | Namespace | Port-Forward | Ingress URL | Beschreibung |
-|------|-----------|--------------|-------------|--------------|
-| **Polaris** | polaris | :8080 | polaris.local | Best Practice Validierung |
-| **Kubernetes Dashboard** | kubernetes-dashboard | :8443 | k8s.local | Cluster Management |
-| **ArgoCD** | argocd | :8080 | argocd.local | GitOps UI |
-| **Keycloak** | keycloak | :8080 | keycloak.local | Identity Provider |
-| **Grafana** | monitoring | :3000 | grafana.local | Metriken |
-| **Prometheus** | monitoring | :9090 | prometheus.local | Monitoring |
+| Service | Namespace | Local Port | Ingress Host | Beschreibung |
+|---------|-----------|------------|--------------|--------------|
+| **ArgoCD** | argocd | 9080 | argocd.idp.local | GitOps UI |
+| **Keycloak** | keycloak | 9081 | keycloak.idp.local | Identity Provider |
+| **Polaris** | polaris | 8080 | polaris.local | Best Practice Dashboard |
+| **Grafana** | monitoring | 3000 | grafana.local | Metriken & Dashboards |
+| **Prometheus** | monitoring | 9090 | prometheus.local | Metriken Backend |
+| **AlertManager** | monitoring | 9093 | alertmanager.local | Alert Management |
+| **Ingress NGINX** | ingress-nginx | 31439 | — | Ingress Controller |
 
-## Schnellzugriff (Port-Forward Scripts)
+## Schnellzugriff (Port-Forward)
+
+Alle Services auf einmal starten:
 
 ```bash
-# Polaris Dashboard
-kubectl port-forward -n polaris svc/polaris-dashboard 8080:80
+# ArgoCD GitOps UI
+kubectl port-forward -n argocd svc/argocd-server 9080:443 &
 
-# Kubernetes Dashboard
-kubectl proxy
+# Keycloak Identity
+kubectl port-forward -n keycloak svc/keycloak-http 9081:80 &
 
-# ArgoCD
-kubectl port-forward -n argocd svc/argocd-server 8080:443
+# Polaris Best Practice
+kubectl port-forward -n polaris svc/polaris-dashboard 8080:80 &
 
-# Grafana
-kubectl port-forward -n monitoring svc/grafana 3000:3000
+# Grafana Metriken
+kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80 &
 
 # Prometheus
-kubectl port-forward -n monitoring svc/prometheus 9090:9090
+kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090 &
 ```
 
-## Ingress Zugriff (über Ingress-NGINX)
+## Login Credentials
 
-Damit Ingress-URLs funktionieren, muss die `/etc/hosts` angepasst werden:
+| Service | Username | Password | Notes |
+|---------|----------|----------|-------|
+| ArgoCD | admin | `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" \| base64 -d` | |
+| Keycloak | admin | admin | Default, in PROD ändern! |
+| Grafana | admin | `kubectl get secret --namespace monitoring -l app.kubernetes.io/component=admin-secret -o jsonpath="{.items[0].data.admin-password}" \| base64 --decode` | |
+| Polaris | — | kein Login | Read-only Dashboard |
 
-```bash
-# IP des Clusters
-NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
-echo "$NODE_IP polaris.local argocd.local keycloak.local grafana.local prometheus.local k8s.local"
+## Ingress URLs (braucht /etc/hosts)
 
-# In /etc/hosts eintragen:
-echo "$NODE_IP polaris.local" >> /etc/hosts
+Für Production-Clusters mit LoadBalancer:
+
+```
+192.168.1.100  argocd.idp.local
+192.168.1.100  keycloak.idp.local
+192.168.1.100  polaris.local
+192.168.1.100  grafana.local
+192.168.1.100  prometheus.local
 ```
 
-Dann: `http://polaris.local` im Browser.
-
-## Ingress Controller aktivieren (kind)
-
-Für localClusters muss der Ingress-Controller auf NodePort laufen:
-
+In `/etc/hosts` eintragen:
 ```bash
-# Ingress NGINX auf NodePort
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-
-# Service auf NodePort prüfen
-kubectl get svc -n ingress-nginx
+echo "192.168.1.100 argocd.idp.local keycloak.idp.local polaris.local grafana.local prometheus.local" | sudo tee -a /etc/hosts
 ```
 
-Ausgabe zeigt z.B.: `80:31439/TCP,443:32127/TCP`
+## NodePort Access (kind Cluster)
 
-Dann im Browser: `http://<node-ip>:31439/`
+Falls kein Ingress verfügbar (lokale Entwicklung):
 
-## Tools ohne Dashboard
+| Service | NodePort | URL |
+|---------|----------|-----|
+| Ingress NGINX | 31439 | http://localhost:31439 |
+| ArgoCD | 30080 | https://localhost:30080 |
+| Keycloak | 30081 | http://localhost:30081 |
 
-Diese Tools haben kein Web-UI, sondern werden per CLI verwendet:
+NodePorts aktivieren:
+```bash
+kubectl patch svc argocd-server -n argocd -p '{"spec":{"type":"NodePort"}}'
+kubectl patch svc keycloak-http -n keycloak -p '{"spec":{"type":"NodePort"}}'
+```
 
-| Tool | CLI |
-|------|-----|
-| **Trivy** | `kubectl get vulnerabilityreports -A` |
-| **kube-bench** | `kubectl logs job/kube-bench` |
-| **OPA Gatekeeper** | `kubectl get constraints` |
-| **Flux CLI** | `flux get sources` |
+## Health Checks
 
-## Alle Pods im Überblick
+Alle Services health check:
 
 ```bash
-kubectl get pods -A --sort-by='.metadata.namespace'
+# Alle Pods nach Status
+kubectl get pods -A --sort-by='.status.conditions[?(@.type=="Ready")].status'
+
+# Alle Services
+kubectl get svc -A
+```
+
+## Linksammlung für Rook Dashboard
+
+Im Rook Dashboard einbauen:
+
+```json
+{
+  "kubernetes": {
+    "label": "Kubernetes Lab",
+    "links": [
+      {"name": "ArgoCD", "url": "http://localhost:9080", "icon": "argo"},
+      {"name": "Keycloak", "url": "http://localhost:9081", "icon": "keycloak"},
+      {"name": "Polaris", "url": "http://localhost:8080", "icon": "polaris"},
+      {"name": "Grafana", "url": "http://localhost:3000", "icon": "grafana"},
+      {"name": "Prometheus", "url": "http://localhost:9090", "icon": "prometheus"}
+    ]
+  }
+}
 ```
 
 ---
