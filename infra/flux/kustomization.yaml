@@ -1,13 +1,18 @@
----
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
   name: rook-lab
   namespace: flux-system
 spec:
-  interval: 1m0s
-  path: ./apps
-  prune: true
   sourceRef:
     kind: GitRepository
     name: rook-lab
+  path: ./apps
+  prune: true
+  interval: 1m
+  # Health Check: Warte bis alle Deployments ready sind
+  healthChecks:
+    - kind: Deployment
+      apiVersion: apps/v1
+      name: nginx
+      namespace: default

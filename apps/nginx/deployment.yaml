@@ -19,6 +19,24 @@ spec:
           image: nginx:1.25
           ports:
             - containerPort: 80
+          # Liveness: Ist nginx noch am Leben?
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # Readiness: Kann nginx Traffic annehmen?
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
           resources:
             requests:
               cpu: 100m
