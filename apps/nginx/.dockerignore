@@ -1,0 +1,24 @@
+# Git
+.git
+.gitignore
+
+# GitHub
+.github
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# Documentation
+*.md
+!README.md
+
+# Build artifacts
+*.tar.gz
+*.zip
+
+# Misc
+.env
+.env.*
+*.log
