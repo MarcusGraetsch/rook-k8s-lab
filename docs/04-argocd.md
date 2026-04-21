@@ -99,9 +99,9 @@ kubectl logs -n argocd deployment/argocd-dex-server
 
 1. [x] ArgoCD installiert
 2. [x] Login möglich
-3. [ ] SSO via Keycloak konfigurieren
-4. [ ] Applications im UI sichtbar machen
-5. [ ] RBAC für Developer konfigurieren
+3. [x] SSO via Keycloak dokumentiert (docs/17-argocd-keycloak-sso.md)
+4. [ ] Keycloak Client für ArgoCD manuell erstellen
+5. [ ] ArgoCD RBAC für Keycloak Groups konfigurieren
 
 ---
 

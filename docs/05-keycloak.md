@@ -71,30 +71,14 @@ kubectl --token=$KEYCLOAK_TOKEN get pods
 
 ## ArgoCD SSO mit Keycloak
 
-### Keycloak: Client erstellen
+**Detaillierte Anleitung:** docs/17-argocd-keycloak-sso.md
 
-1. **Clients** → **Create**
-2. Client ID: `argocd`
-3. Client Protocol: `openid-connect`
-4. Access Type: `confidential`
-5. Valid Redirect URIs: `http://localhost:9080/auth/callback`
+Kurzübersicht:
 
-### ArgoCD: OIDC konfigurieren
-
-```bash
-kubectl edit configmap argocd-cm -n argocd
-```
-
-```yaml
-data:
-  url: http://localhost:9080/
-  oidc.config: |
-    name: Keycloak
-    issuer: http://localhost:9081/realms/master
-    clientID: argocd
-    clientSecret: <SECRET>
-    requestedScopes: ["openid", "profile", "email", "groups"]
-```
+1. Keycloak Client `argocd` erstellen (Client ID: argocd, Valid Redirect: http://localhost:9080/auth/callback)
+2. ArgoCD ConfigMap `argocd-cm` patchen mit OIDC Config
+3. ArgoCD RBAC für Keycloak Groups konfigurieren
+4. Testen: ArgoCD öffnen → Login with Keycloak
 
 ## RBAC mit Keycloak Groups
 
