@@ -19,108 +19,172 @@ Kubernetes API Server
 Allow │ Deny (mit Grund)
 ```
 
-## Gatekeeper Installation
+## Komponenten
+
+Gatekeeper Policies bestehen aus:
+1. **ConstraintTemplate** — Die Regellogik (Rego)
+2. **Constraint** — Die konkrete Anwendung auf Cluster/Namespaces
+
+## Installation (funktionierende Version)
+
+**Wichtig:** Gatekeeper v3.15.0 hat einen Bug mit Kubernetes 1.27 (kind). Bei uns funktioniert v3.14.0.
+
+### Schritt 1: Gatekeeper deployen
 
 ```bash
-# Gatekeeper deployen
-kubectl apply --server-side -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/v3.15.0/deploy/gatekeeper.yaml
+# Alte Version entfernen falls vorhanden
+kubectl delete -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/v3.15.0/deploy/gatekeeper.yaml
+kubectl delete ns gatekeeper-system --force --grace-period=0
 
-# Prüfen dass er läuft
+# Gatekeeper 3.14.0 installieren
+kubectl apply --server-side -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/v3.14.0/deploy/gatekeeper.yaml
+
+# Prüfen dass alle Pods laufen (dauert ~20 Sekunden)
 kubectl get pods -n gatekeeper-system
 ```
 
-## ConstraintTemplates
-
-Gatekeeper Policies bestehen aus:
-1. **ConstraintTemplate** — Die Regellogik (rego)
-2. **Constraint** — Die konkrete Anwednung auf Cluster/Namespaces
-
-## Unsere Policies
-
-### 1. Registry Whitelist — Nur erlaubte Container Registries
-
-```rego
-package kubernetes.admission
-
-deny[msg] {
-  input.request.kind.kind == "Deployment"
-  container := input.request.object.spec.template.spec.containers[_]
-  not startswith(container.image, "registry.company.com/")
-  not startswith(container.image, "docker.io/")
-  not startswith(container.image, "quay.io/")
-  msg := sprintf("Image '%v' not from allowed registry", [container.image])
-}
+Erwartete Ausgabe:
+```
+NAME                                             READY   STATUS    RESTARTS     AGE
+gatekeeper-audit-659dd569bb-rp7xh                1/1     Running   0           20s
+gatekeeper-controller-manager-6675d68c55-9vrq9     1/1     Running   0           20s
+gatekeeper-controller-manager-6675d68c55-t2s7r     1/1     Running   0           20s
+gatekeeper-controller-manager-6675d68c55-zh2h4   1/1     Running   0           20s
 ```
 
-### 2. Keine privileged Container
+## ConstraintTemplate installieren (offizielle Library)
 
-```rego
-package kubernetes.admission
+Statt eigene Rego-Templates zu schreiben, nutzen wir die offiziellen Templates vom gatekeeper-library Repository.
 
-deny[msg] {
-  input.request.kind.kind == "Deployment"
-  container := input.request.object.spec.template.spec.containers[_]
-  container.securityContext.privileged == true
-  msg := "Privileged containers are not allowed"
-}
+### Registry-Whitelist Template
+
+```bash
+# Offizielles Template installieren
+curl -sL https://raw.githubusercontent.com/open-policy-agent/gatekeeper-library/master/library/general/allowedrepos/template.yaml | kubectl apply -f -
 ```
 
-### 3. Keine Root-Container
+### Prüfen ob Template geladen ist
 
-```rego
-package kubernetes.admission
-
-deny[msg] {
-  input.request.kind.kind == "Deployment"
-  container := input.request.object.spec.template.spec.containers[_]
-  not container.securityContext.runAsNonRoot == true
-  not container.securityContext.runAsNonRoot == false
-  msg := "Container must set runAsNonRoot: true or false"
-}
+```bash
+kubectl get constrainttemplates
 ```
 
-### 4. Labels erforderlich
-
-```rego
-package kubernetes.admission
-
-deny[msg] {
-  input.request.kind.kind == "Deployment"
-  not input.request.object.metadata.labels.app
-  msg := "Deployment must have label 'app'"
-}
+Erwartete Ausgabe:
+```
+NAME              AGE
+k8sallowedrepos   10s
 ```
 
-### 5. Resourcen-Limits erforderlich
+## Constraint erstellen
 
-```rego
-package kubernetes.admission
-
-deny[msg] {
-  input.request.kind.kind == "Deployment"
-  container := input.request.object.spec.template.spec.containers[_]
-  not container.resources.limits
-  msg := sprintf("Container '%v' must have resource limits", [container.name])
-}
-```
-
-## Constraint als YAML
+### Schritt 2: Constraint YAML erstellen
 
 ```yaml
+# infra/gatekeeper/constraints/allowed-repos.yaml
 apiVersion: constraints.gatekeeper.sh/v1beta1
-kind: K8sAllowedRegistry
+kind: K8sAllowedRepos
 metadata:
-  name: allowed-registry
+  name: allowed-docker-repos
 spec:
   match:
     kinds:
-      - apiGroups: ["apps"]
-        kinds: ["Deployment"]
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    namespaces:
+      - "wasserbilanz"
+      - "abwasser"
+      - "agripower"
+      - "stadtwerke-hh"
   parameters:
-    registries:
-      - "docker.io"
-      - "quay.io"
-      - "registry.company.com"
+    repos:
+      - "docker.io/"
+      - "quay.io/"
+      - "kindest.io/"
+      - "registry.k8s.io/"
+      - "nginx"
+```
+
+### Schritt 3: Constraint anwenden
+
+```bash
+kubectl apply -f infra/gatekeeper/constraints/allowed-repos.yaml
+```
+
+### Prüfen
+
+```bash
+kubectl get constraints
+```
+
+## Policy testen
+
+### Verbotene Registry blockieren
+
+```bash
+# gcr.io ist nicht erlaubt → sollte rejected werden
+kubectl run test-disallowed --image=gcr.io/test/test:latest --dry-run=server
+```
+
+Erwartete Fehlermeldung:
+```
+Error from server (Forbidden): admission webhook "validation.gatekeeper.sh" denied the request: 
+[allowed-docker-repos] container <test-disallowed> has an invalid image repo <gcr.io/test/test:latest>, 
+allowed repos are ["docker.io/", "quay.io/", ...]
+```
+
+### Erlaubte Registry durchlassen
+
+```bash
+# docker.io/nginx ist erlaubt → sollte funktionieren
+kubectl run test-allowed --image=docker.io/nginx:alpine --dry-run=server
+```
+
+Erwartete Ausgabe:
+```
+pod/test-allowed created (server dry run)
+```
+
+## Troubleshooting
+
+### Problem: ConstraintTemplate wird nicht erstellt
+
+**Fehler:** `invalid ConstraintTemplate: invalid rego`
+
+**Ursache:** Meistens ein Syntax-Fehler im Rego-Code oder inkompatible Gatekeeper-Version.
+
+**Lösung:**
+1. Gatekeeper Version prüfen: `kubectl get deployment -n gatekeeper-system -o jsonpath='{.items[*].spec.template.spec.containers[*].image}'`
+2. Falls v3.15.0 → Downgrade auf v3.14.0 (siehe Installation oben)
+3. Offizielle Templates aus gatekeeper-library nutzen statt eigene zu schreiben
+
+### Problem: ConstraintTemplate erstellt, aber Constraint schlägt fehl
+
+**Fehler:** `unable to compile modules`
+
+**Ursache:** Das ConstraintTemplate hat einen internen OPA-Library-Bug.
+
+**Lösung:** Andere Version verwenden oder offizielle Templates nutzen.
+
+### Logs checken
+
+```bash
+# Controller Logs
+kubectl logs -n gatekeeper-system deployment/gatekeeper-controller-manager -c manager
+
+# Audit Logs  
+kubectl logs -n gatekeeper-system deployment/gatekeeper-audit
+```
+
+### Alle Constraints anzeigen
+
+```bash
+kubectl get constraints -A
+```
+
+### Einzelnen Constraint prüfen
+
+```bash
+kubectl describe constraint allowed-docker-repos
 ```
 
 ## Flux Integration
@@ -129,50 +193,45 @@ Policies werden in Git gespeichert und via Flux deployed:
 
 ```
 infra/gatekeeper/
-  constraints/
-    allowed-registry.yaml
-    no-privileged-containers.yaml
-    require-labels.yaml
   templates/
-    k8sallowedregistry-template.yaml
+    k8sallowedrepos-template.yaml    # ConstraintTemplate
+  constraints/
+    allowed-repos.yaml               # Constraint
 ```
 
-## Testen ob Policy greift
+Flux erkennt neue Constraints automatisch und synced sie zum Cluster.
+
+## Flux mit Telegram Alert (optional)
+
+Wenn eine Policy verletzt wird, kann Flux per Telegram benachrichtigen:
 
 ```bash
-# Verbotenes Image deployen → sollte rejected werden
-kubectl run nginx-test --image=nginx:latest --dry-run=server
-# Expected: Error ... denied by allowed-registry
-
-# Erlaubtes Image deployen → sollte funktionieren
-kubectl run nginx-test --image=docker.io/nginx:latest --dry-run=server
-# Expected: Success (oder Deployment created)
+# Notification Controller muss installiert sein (war bei Flux bootstrap dabei)
+# Prüfen:
+kubectl get pods -n flux-system | grep notification
 ```
 
-## Troubleshooting
+## Versionshistorie
 
-### Policy greift nicht
-```bash
-# Logs vom Controller checken
-kubectl logs -n gatekeeper-system deployment/gatekeeper-controller-manager -c controller-manager
-
-# Constraint Status checken
-kubectl get constraints
-kubectl describe constraint <name>
-```
-
-### Mutation statt Validation
-Gatekeeper kann auch mutieren (automatisch korrigieren). Das ist optional.
+| Datum | Version | Änderung |
+|-------|---------|----------|
+| 2026-04-21 | 3.15.0 | Installation fehlgeschlagen (OPA Library Bug mit K8s 1.27) |
+| 2026-04-21 | 3.14.0 | ✅ Funktioniert. ConstraintTemplates laden korrekt. |
 
 ## Nächste Schritte
 
-1. [x] Gatekeeper installiert
-2. [ ] Policies als YAML in Git speichern
-3. [ ] ConstraintTemplates + Constraints erstellen
-4. [ ] Test: Policy greift bei verbotenen Deployments
-5. [ ] Telegram Alert wenn Policy denied
+1. [x] Gatekeeper 3.14.0 installiert
+2. [x] ConstraintTemplate k8sallowedrepos installiert (offizielle Library)
+3. [x] Constraint allowed-docker-repos erstellt
+4. [x] Test: gcr.io blocked, docker.io/nginx allowed
+5. [ ] Weitere Policies: no-privileged-containers, require-labels, require-resources
+6. [ ] Telegram Alert bei Policy-Deny
 
 ---
 
-*Quelle: open-policy-agent.github.io/gatekeeper*
+*Quellen:*
+* https://open-policy-agent.github.io/gatekeeper/
+* https://github.com/open-policy-agent/gatekeeper-library
+* https://www.openpolicyagent.org/docs/kubernetes/debugging
+
 *Erstellt: 2026-04-21*
