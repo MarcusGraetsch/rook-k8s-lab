@@ -85,6 +85,42 @@ docker restart gitlab
 
 ---
 
+## Import Sources (GitHub, etc.)
+
+By default, import sources may be disabled. Enable via PostgreSQL:
+
+```bash
+# Enable import sources (GitHub, Bitbucket, etc.)
+docker exec gitlab gitlab-psql -d gitlabhq_production -c "UPDATE application_settings SET import_sources = 'github,bitbucket,gitlab,google_code,fogbugz';"
+
+# Restart GitLab to apply
+docker restart gitlab
+```
+
+Then: **New Project → Import → GitHub**
+
+---
+
+## Import from GitHub (Pull Mirror)
+
+GitLab can pull repos from GitHub:
+
+1. **Admin Area → Applications** → Create GitHub OAuth App
+   - Homepage URL: `http://localhost:8090`
+   - Callback URL: `http://localhost:8090/-/github_import/userAuthorize`
+
+2. **New Project → Import → GitHub** → Authenticate with GitHub
+
+3. Select repos to import
+
+**Alternative: GitHub as Primary, GitLab as Read-Only Mirror**
+- Import repos from GitHub
+- In GitLab: **Settings → Repository → Mirroring**
+- Set to "Pull" direction
+- GitLab syncs automatically every few minutes
+
+---
+
 ## Commands
 
 ```bash
@@ -99,6 +135,12 @@ docker restart gitlab
 
 # Reconfigure (after changes)
 docker exec gitlab gitlab-ctl reconfigure
+
+# Get initial root password
+docker exec gitlab cat /etc/gitlab/initial_root_password
+
+# PostgreSQL console
+docker exec gitlab gitlab-psql -d gitlabhq_production
 ```
 
 ---
@@ -146,6 +188,31 @@ Requirements:
 - 8GB+ RAM for GitLab in K8s
 - Persistent storage (10GB+)
 - External database (PostgreSQL)
+
+---
+
+## Troubleshooting
+
+### "No import options available"
+
+Enable import sources via PostgreSQL (see section above).
+
+### User blocked with "pending approval"
+
+```bash
+docker exec gitlab gitlab-psql -d gitlabhq_production -c "UPDATE users SET state='active' WHERE username='username';"
+```
+
+### Password reset
+
+```bash
+docker exec gitlab gitlab-rails console -e production
+# In console:
+user = User.find_by_username('username')
+user.password = 'NewPassword123!'
+user.password_confirmation = 'NewPassword123!'
+user.save!
+```
 
 ---
 
