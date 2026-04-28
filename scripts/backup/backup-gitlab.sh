@@ -30,9 +30,11 @@ fi
 # Copy backup to local storage with date rename
 docker cp "$GITLAB_CONTAINER:$BACKUP_FILE" "$BACKUP_DIR/gitlab-backup-$DATE.tar.gz"
 
-echo "[$(date)] GitLab backup complete: $BACKUP_DIR/gitlab-backup-$DATE.tar.gz"
+# Also backup critical config files (not included in gitlab-backup)
+docker cp "$GITLAB_CONTAINER:/etc/gitlab/gitlab.rb" "$BACKUP_DIR/gitlab.rb.$DATE" 2>/dev/null || true
+docker cp "$GITLAB_CONTAINER:/etc/gitlab/gitlab-secrets.json" "$BACKUP_DIR/gitlab-secrets.json.$DATE" 2>/dev/null || true
 
-# Keep only last 7 backups
+echo "[$(date)] GitLab backup complete: $BACKUP_DIR/gitlab-backup-$DATE.tar.gz"
 ls -t "$BACKUP_DIR"/gitlab-backup-*.tar.gz 2>/dev/null | tail -n +8 | xargs -r rm
 
 echo "[$(date)] Cleanup complete. Kept last 7 backups."
