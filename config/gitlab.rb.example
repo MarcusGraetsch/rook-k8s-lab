@@ -1,0 +1,22 @@
+# GitLab CE Memory Optimization Config
+# For small VMs (< 8GB RAM available for GitLab)
+
+# Reduce Puma workers - default is 8, we use 2
+puma['worker_processes'] = 2
+puma['min_threads'] = 2
+puma['max_threads'] = 4
+
+# Reduce memory per worker (512MB)
+gitlab_rails['max_worker_memory'] = 512000
+
+# Reduce Sidekiq concurrency
+sidekiq['concurrency'] = 5
+
+# Reduce PostgreSQL memory
+postgresql['shared_buffers'] = "256MB"
+postgresql['max_worker_processes'] = 2
+
+# Disable telemetry/unneeded features
+gitlab_rails['usage_ping_enabled'] = false
+prometheus['enable'] = false
+alertmanager['enable'] = false
