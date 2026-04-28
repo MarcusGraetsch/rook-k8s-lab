@@ -191,6 +191,71 @@ Requirements:
 
 ---
 
+## Admin Hardening (Best Practices)
+
+### Security Settings
+
+```ruby
+# Disable sign-up (use GitHub OAuth or LDAP instead)
+gitlab_rails['signup_enabled'] = false
+
+# Password requirements
+gitlab_rails['password_minimum_length'] = 12
+
+# Session security
+gitlab_rails['session_expire_delay'] = 60  # minutes
+
+gitlab_rails['session_expire_seconds'] = 28800  # 8 hours
+
+# Restrict visibility levels
+gitlab_rails['restricted_visibility_levels'] = ['public']
+
+# Disable Gravatar
+gitlab_rails['gravatar_enabled'] = false
+
+# Disable user cap
+gitlab_rails['user_cap_enabled'] = false
+```
+
+### Recommended Admin Actions (Web UI)
+
+1. **Admin Area → Settings → General**
+   - ✅ Sign-up restrictions
+   - ✅ Default project visibility: Private
+   - ✅ Session timeout
+
+2. **Admin Area → Settings → Metrics and profiling**
+   - Prometheus metrics (optional, needs RAM)
+
+3. **Admin Area → Settings → CI/CD**
+   - Restrict pipeline for forked projects
+   - Limit CI/CD variables scope
+
+4. **Admin Area → Settings → Network**
+   - Outbound requests: whitelist domains
+   - Disable webhook SSL verification bypass
+
+5. **Admin Area → Settings → Usage Statistics**
+   - Disable usage ping if privacy needed
+
+### Production Hardening (when going live)
+
+```bash
+# Enable automatic backups
+gitlab_rails['auto_backup_enabled'] = true
+
+# Set backup retention
+gitlab_rails['backup_keep_time'] = 604800  # 7 days
+
+# Enable 2FA enforcement for admins
+gitlab_rails['require_admin_two_factor_authentication'] = true
+
+# Restrict OAuth providers
+gitlab_rails['oauth_providers'] = []  # Allow specific providers only
+```
+
+---
+
 ## Troubleshooting
 
 ### "No import options available"
