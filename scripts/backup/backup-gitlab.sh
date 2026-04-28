@@ -1,5 +1,6 @@
 #!/bin/bash
-# backup-gitlab.sh — GitLab backup (Docker)
+# GitLab CE/EE backup (Docker)
+# Works with both GitLab CE and GitLab EE
 set -euo pipefail
 
 BACKUP_DIR=${BACKUP_DIR:-/backups/idp/gitlab}
