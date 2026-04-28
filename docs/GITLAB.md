@@ -10,17 +10,46 @@ Podman with Quadlet is the recommended installation method:
 - **Rootless** — runs as unprivileged user
 - **OCI compliant** — works with any OCI image
 
+### ⚠️ Ubuntu/AppArmor Fix (CRITICAL FOR UBUNTU)
+
+**The Problem:**
+Ubuntu's AppArmor profile blocks Podman's CNI networking because `/sbin/iptables` and `/sbin/ip6tables` are not in the default user's PATH. Podman cannot initialize iptables for network namespace configuration.
+
+**The Fix (run these commands after installing Podman on Ubuntu):**
+
+```bash
+# Fix: Create symlinks so iptables is in Podman's PATH
+ln -sf /sbin/iptables /usr/local/bin/iptables
+ln -sf /sbin/ip6tables /usr/local/bin/ip6tables
+
+# For Podman 5.x (newer), also:
+ln -sf /sbin/iptables-save /usr/local/bin/iptables-save
+ln -sf /sbin/iptables-restore /usr/local/bin/iptables-restore
+```
+
+**Alternatively, add to your shell profile:**
+```bash
+echo 'export PATH=/usr/local/sbin:/sbin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**This fix is automatic in the Ansible role** (`roles/podman/tasks/main.yml`).
+
 ### Quick Start (Podman)
 
 ```bash
 # 1. Install Podman
 sudo apt install podman podman-docker
 
-# 2. Create directories
+# 2. Ubuntu/AppArmor Fix (REQUIRED)
+ln -sf /sbin/iptables /usr/local/bin/iptables
+ln -sf /sbin/ip6tables /usr/local/bin/ip6tables
+
+# 3. Create directories
 sudo mkdir -p /opt/gitlab/{data,config,logs}
 sudo chown -R $USER:$USER /opt/gitlab
 
-# 3. Create quadlet file
+# 4. Create quadlet file
 cat > ~/.config/containers/systemd/gitlab.container << 'EOF'
 [Unit]
 Description=GitLab EE
@@ -44,11 +73,11 @@ AutoUpdate=container
 WantedBy=default.target
 EOF
 
-# 4. Enable and start
+# 5. Enable and start
 systemctl --user daemon-reload
 systemctl --user enable --now gitlab
 
-# 5. Wait for startup (5-10 min first time)
+# 6. Wait for startup (5-10 min first time)
 systemctl --user status gitlab
 journalctl --user -u gitlab -f
 ```
@@ -203,4 +232,15 @@ df -h
 # Reset root password
 sudo gitlab-rake gitlab:backup:create
 sudo gitlab-rake gitlab:password:reset
+```
+
+### Podman + Ubuntu: "iptables not found"
+
+```bash
+# FIX: Run these symlinks
+ln -sf /sbin/iptables /usr/local/bin/iptables
+ln -sf /sbin/ip6tables /usr/local/bin/ip6tables
+
+# Then retry your podman command
+podman run hello-world
 ```

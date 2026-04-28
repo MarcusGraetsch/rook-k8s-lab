@@ -1,6 +1,6 @@
 ---
 # Role: podman
-# Installs Podman (rootless container runtime)
+# Installs Podman (rootless container runtime) with Ubuntu/AppArmor fixes
 
 - name: Install Podman (Debian/Ubuntu)
   apt:
@@ -24,14 +24,37 @@
     enabled: yes
   become: true
 
-- name: Configure podman quadlet directory
+- name: Create containers config directory
   file:
-    path: "{{ ansible_user_dir }}/.config/containers/systemd"
+    path: /etc/containers
     state: directory
-    owner: "{{ ansible_user }}"
     mode: '0755'
 
-- name: Ensure containers can run rootless
+- name: Configure Podman registries (allow short names)
+  copy:
+    dest: /etc/containers/registries.conf
+    content: |
+      # Allow short names from Docker Hub
+      unqualified-search-registries = ["docker.io"]
+    mode: '0644'
+
+- name: Fix iptables PATH for Podman (Ubuntu specific fix)
+  # Ubuntu excludes /sbin from PATH for non-root users
+  # Podman needs iptables/ip6tables in PATH for CNI networking
+  file:
+    src: /sbin/{{ item }}
+    dest: /usr/local/bin/{{ item }}
+    state: link
+    force: yes
+  become: true
+  with_items:
+    - iptables
+    - ip6tables
+    - iptables-save
+    - iptables-restore
+  ignore_errors: yes
+
+- name: Ensure subuid/subgid for rootless pods
   lineinfile:
     path: /etc/subuid
     regexp: "^{{ ansible_user }}:"
@@ -39,10 +62,17 @@
     state: present
   become: true
 
-- name: Ensure containers can run rootless (subgid)
+- name: Ensure subgid for rootless pods
   lineinfile:
     path: /etc/subgid
     regexp: "^{{ ansible_user }}:"
     line: "{{ ansible_user }}:100000:65536"
     state: present
   become: true
+
+- name: Create podman quadlet directory
+  file:
+    path: "{{ ansible_user_dir }}/.config/containers/systemd"
+    state: directory
+    owner: "{{ ansible_user }}"
+    mode: '0755'
