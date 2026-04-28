@@ -16,21 +16,23 @@ if ! docker ps --format '{{.Names}}' | grep -q "^${GITLAB_CONTAINER}$"; then
     exit 1
 fi
 
-# Create GitLab backup (keeps data in /var/opt/gitlab/backups inside container)
+# Create GitLab backup (creates file in /var/opt/gitlab/backups inside container)
 docker exec "$GITLAB_CONTAINER" gitlab-backup create STRATEGY=copy SKIP=artifacts,builds
 
-# Find latest backup file inside container
-BACKUP_FILE=$(docker exec "$GITLAB_CONTAINER" ls -t /var/opt/gitlab/backups/*.tar 2>/dev/null | head -1 || true)
+# Find latest backup file - GitLab naming: <timestamp>_2026_04_28_XX.X-ee_gitlab_backup.tar
+BACKUP_FILE=$(docker exec "$GITLAB_CONTAINER" sh -c "ls -t /var/opt/gitlab/backups/*_gitlab_backup.tar 2>/dev/null | head -1")
 
 if [ -z "$BACKUP_FILE" ]; then
-    echo "ERROR: No GitLab backup file found"
+    echo "ERROR: No GitLab backup file found in /var/opt/gitlab/backups/"
     exit 1
 fi
 
-# Copy backup to local storage
+# Copy backup to local storage with date rename
 docker cp "$GITLAB_CONTAINER:$BACKUP_FILE" "$BACKUP_DIR/gitlab-backup-$DATE.tar.gz"
+
+echo "[$(date)] GitLab backup complete: $BACKUP_DIR/gitlab-backup-$DATE.tar.gz"
 
 # Keep only last 7 backups
 ls -t "$BACKUP_DIR"/gitlab-backup-*.tar.gz 2>/dev/null | tail -n +8 | xargs -r rm
 
-echo "[$(date)] GitLab backup complete: $BACKUP_DIR/gitlab-backup-$DATE.tar.gz"
+echo "[$(date)] Cleanup complete. Kept last 7 backups."
