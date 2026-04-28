@@ -1,0 +1,35 @@
+[Unit]
+Description=GitLab EE
+After=network.target
+
+[Container]
+Image=gitlab/gitlab-ee:latest
+ContainerName=gitlab
+
+# Ports
+PublishPort=22:22
+PublishPort=80:80
+PublishPort=443:443
+
+# volumes
+Volume={{ gitlab_data_dir }}:/var/opt/gitlab
+Volume={{ gitlab_config_dir }}:/etc/gitlab
+Volume={{ gitlab_logs_dir }}:/var/log/gitlab
+
+# Environment
+GITLAB_ROOT_EMAIL=admin@{{ gitlab_hostname }}
+GITLAB_HOST={{ gitlab_hostname }}
+GITLAB_PORT=443
+GITLAB_HTTPS=true
+
+# Restart policy
+AutoUpdate=container
+
+# Health check
+HealthCmd=/opt/gitlab/bin/redis-cli ping
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=5
+
+[Install]
+WantedBy=default.target

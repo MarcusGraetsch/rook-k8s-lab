@@ -1,0 +1,64 @@
+---
+# Role: gitlab
+# Installs GitLab EE via Podman Quadlet (systemd-native)
+# Fallback: Docker Compose documented in docs/
+
+- name: Create GitLab directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    mode: '0755'
+  loop:
+    - "{{ gitlab_data_dir }}"
+    - "{{ gitlab_config_dir }}"
+    - "{{ gitlab_logs_dir }}"
+
+- name: Create quadlet directory for user
+  file:
+    path: "{{ ansible_user_dir }}/.config/containers/systemd"
+    state: directory
+    owner: "{{ ansible_user }}"
+    mode: '0755'
+
+- name: Generate GitLab quadlet file
+  template:
+    src: gitlab.container.j2
+    dest: "{{ ansible_user_dir }}/.config/containers/systemd/gitlab.container"
+    owner: "{{ ansible_user }}"
+    mode: '0644'
+
+- name: Reload systemd for new quadlet
+  systemd:
+    daemon_reload: yes
+    scope: user
+
+- name: Enable and start GitLab via quadlet
+  systemd:
+    name: gitlab
+    enabled: yes
+    state: started
+    scope: user
+  register: gitlab_start
+
+- name: Wait for GitLab to be ready (first boot can take 5-10 min)
+  wait_for:
+    port: 443
+    host: "{{ gitlab_hostname }}"
+    timeout: 600
+    delay: 30
+  when: gitlab_start.changed
+
+- name: Fetch GitLab initial credentials
+  slurp:
+    src: "{{ gitlab_config_dir }}/initial_root_password"
+  register: gitlab_creds
+  when: gitlab_start.changed
+
+- name: Display GitLab setup info
+  debug:
+    msg: |
+      GitLab EE is starting up (can take 5-10 minutes).
+      Check status: systemctl --user status gitlab
+      Logs: journalctl --user -u gitlab -f
+      Initial credentials stored in: {{ gitlab_config_dir }}/initial_root_password

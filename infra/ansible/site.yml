@@ -1,0 +1,36 @@
+---
+# rook-k8s-lab: Podman + GitLab Installation
+# Primary: Podman with Quadlet (systemd-native)
+# Fallback: Docker Compose (documented alternative)
+
+- name: Install Podman + GitLab
+  hosts: gitlab_server
+  become: true
+  vars:
+    gitlab_hostname: gitlab.platform-dev.idp.local
+    gitlab_data_dir: /opt/gitlab/data
+    gitlab_config_dir: /opt/gitlab/config
+    gitlab_logs_dir: /opt/gitlab/logs
+
+  roles:
+    - role: podman
+      when: install_method == 'podman'
+
+    - role: gitlab
+      when: install_method == 'podman'
+
+  post_tasks:
+    - name: Generate GitLab initial password
+      shell: |
+        kubectl get secret -n gitlab gitlab-gitlab-initial-root-password \
+          -o jsonpath='{.data.password}' | base64 -d
+      register: gitlab_initial_password
+      when: k8s_context is defined
+
+    - name: Display GitLab access info
+      debug:
+        msg: |
+          GitLab installed!
+          URL: https://{{ gitlab_hostname }}
+          Username: root
+          Password: Check /opt/gitlab/config/initial_root_password

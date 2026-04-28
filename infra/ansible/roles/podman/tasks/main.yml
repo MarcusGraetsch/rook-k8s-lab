@@ -1,0 +1,48 @@
+---
+# Role: podman
+# Installs Podman (rootless container runtime)
+
+- name: Install Podman (Debian/Ubuntu)
+  apt:
+    name:
+      - podman
+      - podman-docker  # Docker CLI compatibility
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install Podman (RHEL/CentOS/Fedora)
+  dnf:
+    name:
+      - podman
+      - podman-docker
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Enable lingering for rootless pods
+  systemd:
+    name: linger@{{ ansible_user }}
+    enabled: yes
+  become: true
+
+- name: Configure podman quadlet directory
+  file:
+    path: "{{ ansible_user_dir }}/.config/containers/systemd"
+    state: directory
+    owner: "{{ ansible_user }}"
+    mode: '0755'
+
+- name: Ensure containers can run rootless
+  lineinfile:
+    path: /etc/subuid
+    regexp: "^{{ ansible_user }}:"
+    line: "{{ ansible_user }}:100000:65536"
+    state: present
+  become: true
+
+- name: Ensure containers can run rootless (subgid)
+  lineinfile:
+    path: /etc/subgid
+    regexp: "^{{ ansible_user }}:"
+    line: "{{ ansible_user }}:100000:65536"
+    state: present
+  become: true
