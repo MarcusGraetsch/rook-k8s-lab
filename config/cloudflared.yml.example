@@ -1,0 +1,20 @@
+# Cloudflared Tunnel Config
+# Kopieren nach /etc/cloudflared/config.yml und Credentials anpassen
+
+tunnel: <TUNNEL-ID>
+credentials-file: /root/.cloudflared/<TUNNEL-ID>.json
+
+ingress:
+  - hostname: dashboard.working-notes.org
+    service: http://localhost:3001
+  - hostname: k8portal.working-notes.org
+    service: http://172.18.0.2:31439
+  - hostname: argocd.working-notes.org
+    service: http://172.18.0.2:30080
+  - hostname: keycloak.working-notes.org
+    service: http://172.18.0.2:30081
+  - hostname: polaris.working-notes.org
+    service: http://172.18.0.2:31439
+  - hostname: gitlab.working-notes.org
+    service: http://localhost:8090
+  - service: http_status:404

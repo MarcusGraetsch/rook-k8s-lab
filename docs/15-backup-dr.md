@@ -334,4 +334,70 @@ Backups sind Teil der technischen Maßnahmen nach DSGVO.
 
 ---
 
+---
+
+## Cloudflared Tunnel — Externe Services
+
+### Cloudflared Config (VM)
+
+**Pfad:** `/etc/cloudflared/config.yml`
+
+```yaml
+tunnel: af41317f-09fd-494a-bc27-412d553b713d
+credentials-file: /root/.cloudflared/af41317f-09fd-494a-bc27-412d553b713d.json
+
+ingress:
+  - hostname: dashboard.working-notes.org
+    service: http://localhost:3001
+  - hostname: k8portal.working-notes.org
+    service: http://172.18.0.2:31439
+  - hostname: argocd.working-notes.org
+    service: http://172.18.0.2:30080
+  - hostname: keycloak.working-notes.org
+    service: http://172.18.0.2:30081
+  - hostname: polaris.working-notes.org
+    service: http://172.18.0.2:31439
+  - hostname: gitlab.working-notes.org
+    service: http://localhost:8090
+  - service: http_status:404
+```
+
+### DNS Records (Cloudflare)
+
+| Type | Name | Target |
+|------|------|--------|
+| CNAME | k8portal | rook-dashboard (Tunnel) |
+| CNAME | argocd | rook-dashboard |
+| CNAME | keycloak | rook-dashboard |
+| CNAME | polaris | rook-dashboard |
+| CNAME | gitlab | rook-dashboard |
+
+### Ingress Hostnames in Kubernetes
+
+Nach DNS-Änderung müssen Ingress-Hostnames angepasst werden:
+
+```bash
+# ArgoCD
+kubectl patch ingress argocd-ingress -n argocd \
+  -p '{"spec":{"rules":[{"host":"argocd.working-notes.org"}]}}'
+
+# Keycloak
+kubectl patch ingress keycloak-ingress -n keycloak \
+  -p '{"spec":{"rules":[{"host":"keycloak.working-notes.org"}]}}'
+
+# Polaris
+kubectl patch ingress polaris -n polaris \
+  -p '{"spec":{"rules":[{"host":"polaris.working-notes.org"}]}}'
+```
+
+### Cloudflared neustarten
+
+```bash
+systemctl restart cloudflared
+systemctl status cloudflared
+```
+
+---
+
 *Erstellt: 2026-04-21*
+*Letzte Änderung: 2026-04-29 — Cloudflared Tunnel + Ingress Config hinzugefügt*
