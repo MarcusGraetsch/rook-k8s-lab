@@ -47,7 +47,7 @@ docker exec gitlab gitlab-ctl status
 From your local machine or phone:
 
 ```bash
-ssh -p 6262 -N -L 8090:localhost:8090 root@178.18.254.21
+ssh -p 6262 -N -L 8090:localhost:8090 ${VM_USER}@${VM_IP_ADRESSE}
 ```
 
 Then open: http://localhost:8090
