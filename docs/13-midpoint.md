@@ -74,7 +74,7 @@ kubectl port-forward -n midpoint svc/midpoint 9090:8080
 
 - **URL**: http://localhost:9090/midpoint
 - **Username**: `administrator`
-- **Password**: `5ecr3t` (Default — IN PRODUKTION ÄNDERN!)
+- **Password**: `****ROTATE-AND-RETRIEVE-LOCALLY****`
 
 Nach erstem Login sollte das Passwort geändert werden.
 
@@ -247,9 +247,9 @@ midPoint hat eingebaute Dashboards für:
 # Logs checken
 kubectl logs -n midpoint deployment/midpoint -f
 
-# Default Credentials
+# Credentials
 # Username: administrator
-# Password: 5ecr3t
+# Password: retrieve from your local deployment/bootstrap process
 ```
 
 ### Performance Probleme

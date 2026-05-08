@@ -38,7 +38,7 @@ kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 909
 | Service | Username | Password | Notes |
 |---------|----------|----------|-------|
 | ArgoCD | admin | `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" \| base64 -d` | |
-| Keycloak | admin | admin | Default, in PROD ändern! |
+| Keycloak | admin | `****ROTATE-AND-RETRIEVE-LOCALLY****` | Rotate after bootstrap; do not track literal defaults |
 | Grafana | admin | `kubectl get secret --namespace monitoring -l app.kubernetes.io/component=admin-secret -o jsonpath="{.items[0].data.admin-password}" \| base64 --decode` | |
 | Polaris | — | kein Login | Read-only Dashboard |
 

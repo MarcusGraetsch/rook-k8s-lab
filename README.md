@@ -159,9 +159,9 @@ docs/
 | Service | Username | Password |
 |---------|----------|----------|
 | ArgoCD | admin | `kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" \| base64 -d` |
-| Keycloak | admin | `admin` (ändern!) |
+| Keycloak | admin | `****ROTATE-AND-RETRIEVE-LOCALLY****` |
 | Grafana | admin | `kubectl get secret --namespace monitoring -l app.kubernetes.io/component=admin-secret -o jsonpath="{.items[0].data.admin-password}" \| base64 --decode` |
-| midPoint | administrator | `5ecr3t` (ändern!) |
+| midPoint | administrator | `****ROTATE-AND-RETRIEVE-LOCALLY****` |
 
 ## Vulnerability Status (Scans vom 2026-04-21)
 
