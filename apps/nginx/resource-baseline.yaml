@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: default-workload-budget
+  namespace: default
+  labels:
+    vm-operations.phase: phase2
+    vm-operations.change: resource-budget
+spec:
+  hard:
+    requests.cpu: "1"
+    requests.memory: 1Gi
+    limits.cpu: "2"
+    limits.memory: 2Gi
+    pods: "10"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-workload-defaults
+  namespace: default
+  labels:
+    vm-operations.phase: phase2
+    vm-operations.change: resource-budget
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      default:
+        cpu: 200m
+        memory: 256Mi
+      max:
+        cpu: "1"
+        memory: 1Gi
