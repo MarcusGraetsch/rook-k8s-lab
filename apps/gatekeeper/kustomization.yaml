@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- gatekeeper-v3.14.0.yaml
+patches:
+- path: audit-interval-patch.yaml
+  target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: gatekeeper-audit
+    namespace: gatekeeper-system
